@@ -1,21 +1,15 @@
 {
   "name": "@KodiGamingYT/tizenmodule",
-  "appName": "tizenmodule",
+  "appName": "Tizenmodule",
   "version": "1.0.0",
-  "description": "A basic Hello World module for TizenBrew, demonstrating remote key handling.",
+  "description": "just a module",
   "packageType": "app",
   "appPath": "index.html",
-  "files": [
-    "js",
-    "index.html",
-    "config.xml"
-  ],
-  "keywords": [
-    "tizen",
-    "tizenbrew",
-    "samsung-tv",
-    "hello-world"
-  ],
-  "author": "KodiGaming",
-  "license": "ISC"
+  "author": "Kodi Dev",
+  "serviceFile": "js/main.js",
+  "keys": [],
+  "repository": {
+    "url": "https://github.com/KodiGamingYT/tizenmodule"
+  },
+  "license": "GPL-3.0-only"
 }
