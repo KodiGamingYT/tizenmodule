@@ -1,8 +1,8 @@
 {
   "name": "@KodiGamingYT/tizenmodule",
-  "appName": "Tizenmodule",
+  "appName": "Tizen Health Monitor",
   "version": "1.0.0",
-  "description": "just a module",
+  "description": "Tizen OS Health Monitor. An app with information about your TV. Made by KodiGaming.",
   "packageType": "app",
   "appPath": "index.html",
   "author": "Kodi Dev",
