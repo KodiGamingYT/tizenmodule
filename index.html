@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <!-- Tizen/TV specific viewport setup -->
+    <meta name="viewport" content="width=1920, user-scalable=no" /> 
+    <title>Hello Brew Module</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css" />
+    
+    <!-- Assuming css/main.css exists and provides basic styling for TV -->
+    <style>
+        body {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        h1 {
+            font-size: 6rem;
+            margin-bottom: 20px;
+        }
+        #status {
+            font-size: 2rem;
+            color: #3498db;
+            padding: 15px;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<!-- Initializing the script on body load -->
+<body onload="main.init();">
+    <div id="app">
+        <h1>Hello TizenBrew World!</h1>
+        <p id="status">Press ENTER on your TV remote.</p>
+    </div>
+    
+    <!-- TizenBrew's loader script is injected via $TIZENBREW_JS_URL$ -->
+    <script type="text/javascript" src="$TIZENBREW_JS_URL$"></script>
+    <!-- Your custom application logic -->
+    <script type="text/javascript" src="js/main.js"></script>
+</body>
+</html>
+
