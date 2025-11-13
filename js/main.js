@@ -1,58 +1,143 @@
 // js/main.js
 
 /**
- * Global object for handling application initialization and logic.
- * This function handles TV remote key events, which is essential for Tizen apps.
+ * SystemDashboard object to manage API calls and UI updates.
+ * This requires the 'http://tizen.org/privilege/systeminfo' privilege.
  */
-var main = {
-    isToggled: false,
-    statusElement: null,
+var SystemDashboard = {
+    updateInterval: null,
 
-    /**
-     * Initializes the module. Called from the body's onload event.
-     */
     init: function() {
-        console.log("TizenBrew Hello World Module Initialized.");
-        this.statusElement = document.getElementById('status');
-        
-        // Add listener for all keyboard/remote inputs
+        console.log("System Status Module Initialized. Starting data polling.");
+        this.fetchStaticInfo(); // Fetch static info only once
+        this.startPolling(2000); // Start polling dynamic data every 2000ms (2 seconds)
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
     },
 
-    /**
-     * Handles key down events from the TV remote.
-     * @param {KeyboardEvent} event The key event object.
-     */
     handleKeyDown: function(event) {
-        var keyCode = event.keyCode;
-
-        switch (keyCode) {
-            case 13: // Enter Key (Standard Tizen Key Code)
-                this.toggleMessage();
-                break;
-            case 10009: // Return/Back Key (Standard Tizen Key Code)
-                console.log("Return key pressed. TizenBrew will handle exiting/going back.");
-                // TizenBrew usually manages the app lifecycle, but you can add custom clean-up here.
-                break;
-            default:
-                console.log("Key pressed, code: " + keyCode);
-                break;
+        if (event.keyCode === 10009) { // 10009 is the Tizen 'Return' (Back) key
+            console.log("Back button pressed. Stopping polling and allowing TizenBrew to exit.");
+            clearInterval(this.updateInterval);
         }
     },
-    
+
+    startPolling: function(interval) {
+        this.updateDynamicData();
+        this.updateInterval = setInterval(this.updateDynamicData.bind(this), interval);
+    },
+
     /**
-     * Toggles the displayed message on the screen.
+     * Fetches static information (Model, Version, Display) once on load.
      */
-    toggleMessage: function() {
-        this.isToggled = !this.isToggled;
-        if (this.isToggled) {
-            this.statusElement.textContent = "Key pressed! Welcome to module development.";
-            this.statusElement.style.borderColor = "#2ecc71";
-            this.statusElement.style.color = "#2ecc71";
-        } else {
-            this.statusElement.textContent = "Press ENTER on your TV remote.";
-            this.statusElement.style.borderColor = "#3498db";
-            this.statusElement.style.color = "#3498db";
-        }
+    fetchStaticInfo: function() {
+        // Get Model Name and Tizen Version (BUILD property)
+        tizen.systeminfo.getPropertyValue('BUILD', 
+            function(build) {
+                document.getElementById('model-name').textContent = build.model;
+                document.getElementById('tizen-version').textContent = `Platform: ${build.platformVersion}`;
+            },
+            function(error) {
+                document.getElementById('model-name').textContent = "Build Info Error";
+                console.error("BUILD Info Error:", error.message);
+            }
+        );
+
+        // Get Display Resolution
+        tizen.systeminfo.getPropertyValue('DISPLAY', 
+            function(display) {
+                document.getElementById('display-resolution').textContent = 
+                    `${display.resolutionWidth} x ${display.resolutionHeight} px`;
+            },
+            function(error) {
+                document.getElementById('display-resolution').textContent = "Display Error";
+                console.error("Display Info Error:", error.message);
+            }
+        );
+    },
+
+    /**
+     * Fetches dynamic data (CPU, Memory, Storage, Network) and updates the UI periodically.
+     */
+    updateDynamicData: function() {
+        // --- 1. Get CPU Load ---
+        tizen.systeminfo.getPropertyValue('CPU', 
+            function(cpu) {
+                const loadPercent = Math.round(cpu.load * 100);
+                document.getElementById('cpu-load').textContent = loadPercent + "%";
+                document.getElementById('cpu-fill').style.width = loadPercent + "%";
+            },
+            function(error) {
+                document.getElementById('cpu-load').textContent = "CPU Error";
+                document.getElementById('cpu-fill').style.width = "0%";
+            }
+        );
+
+        // --- 2. Get Memory (Total and Available) ---
+        tizen.systeminfo.getPropertyValue('MEMORY', 
+            function(memory) {
+                const totalGB = (memory.capacity / 1024 / 1024).toFixed(2); 
+                const availableMB = (memory.availableCapacity / 1024).toFixed(0);
+                const usedPercent = Math.round(((memory.capacity - memory.availableCapacity) / memory.capacity) * 100);
+
+                document.getElementById('memory-total').textContent = `${totalGB} GB Total`;
+                document.getElementById('memory-available').textContent = `${availableMB} MB Free (${usedPercent}% Used)`;
+            },
+            function(error) {
+                document.getElementById('memory-total').textContent = "Memory Error";
+                document.getElementById('memory-available').textContent = "";
+            }
+        );
+
+        // --- 3. Get Network Status & IP ---
+        tizen.systeminfo.getPropertyValue('NETWORK', 
+            function(network) {
+                const statusElement = document.getElementById('network-status');
+                const ipElement = document.getElementById('ip-address');
+
+                statusElement.textContent = `Type: ${network.networkType || 'N/A'}`;
+
+                if (network.ipAddress) {
+                    ipElement.textContent = `IP: ${network.ipAddress}`;
+                } else if (network.networkType === 'WIFI' || network.networkType === 'ETHERNET') {
+                    // Try to get more detailed info for Ethernet/WiFi
+                    tizen.systeminfo.getPropertyValue(`${network.networkType}_NETWORK`, 
+                        function(detail) {
+                            ipElement.textContent = `IP: ${detail.ipAddress || 'Unknown'}`;
+                        }, 
+                        function() {
+                            ipElement.textContent = 'IP: API Error';
+                        }
+                    );
+                } else {
+                    ipElement.textContent = 'Not Connected';
+                }
+            },
+            function(error) {
+                document.getElementById('network-status').textContent = "Network Error";
+                document.getElementById('ip-address').textContent = error.message;
+            }
+        );
+
+        // --- 4. Get Storage ---
+        tizen.systeminfo.getPropertyValue('STORAGE', 
+            function(storage) {
+                const internalStorage = storage.units.find(unit => unit.type === 'INTERNAL');
+                if (internalStorage) {
+                    const totalGB = (internalStorage.capacity / 1024).toFixed(0);
+                    const availableGB = (internalStorage.availableCapacity / 1024).toFixed(1);
+                    const usedCapacity = internalStorage.capacity - internalStorage.availableCapacity;
+                    const usagePercent = Math.round((usedCapacity / internalStorage.capacity) * 100);
+
+                    document.getElementById('storage-available').textContent = `${availableGB} GB Free (${usagePercent}% Used)`;
+                    document.getElementById('storage-fill').style.width = usagePercent + "%";
+                } else {
+                    document.getElementById('storage-available').textContent = "Internal Storage Not Found";
+                }
+            },
+            function(error) {
+                document.getElementById('storage-available').textContent = "Storage Error";
+                document.getElementById('storage-fill').style.width = "0%";
+            }
+        );
     }
 };
